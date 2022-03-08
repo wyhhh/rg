@@ -1,6 +1,7 @@
 use enum_len::EnumLen;
 use rand::thread_rng;
 use rand::Rng;
+use std::borrow::Borrow;
 use std::borrow::Cow;
 use std::ops::RangeInclusive;
 
@@ -102,11 +103,15 @@ impl<'a> Rg<'a> {
         self
     }
 
-    pub fn combine<'b, S: AsRef<str>>(&mut self, modes: &[&Mode<'b, S>], seps: &[S]) -> String {
+    pub fn combine<'b, S: AsRef<str> + 'b, M: Borrow<Mode<'b, S>>>(
+        &mut self,
+        modes: &[M],
+        seps: &[S],
+    ) -> String {
         let mut buf = String::new();
 
         for (i, mode) in modes.iter().enumerate() {
-            let _res = self.core(mode, &mut buf, true, true);
+            let _res = self.core(mode.borrow(), &mut buf, true, true);
 
             if !seps.is_empty() {
                 let idx = if i < seps.len() { i } else { seps.len() - 1 };
@@ -117,9 +122,12 @@ impl<'a> Rg<'a> {
         buf
     }
 
-    pub fn generate<'b, S: AsRef<str>>(&self, mode: &Mode<'b, S>) -> Cow<'b, str> {
+    pub fn generate<'b, S: AsRef<str> + 'b, M: Borrow<Mode<'b, S>> + 'b>(
+        &self,
+        mode: M,
+    ) -> Cow<'b, str> {
         let mut buf = String::new();
-        let ret = self.core(mode, &mut buf, false, true);
+        let ret = self.core(mode.borrow(), &mut buf, false, true);
 
         if buf.is_empty() {
             Cow::Borrowed(ret.unwrap())

@@ -16,7 +16,7 @@ fn main() {
 
     // 1. 生成一个
     // pass separator
-    let res = rg.generate::<&str>(&Mode::ASLP(","));
+    let res = rg.generate::<&str, _>(Mode::ASLP(","));
     println!("{:?}", res);
 
     // 2. 使用迭代器
@@ -27,7 +27,7 @@ fn main() {
     // 3. 使用组合
     for _ in 0..10 {
         let res = rg.combine(
-            &[&Mode::Diy(&["ABC", "abc", "123"]), &Mode::Rand, &Mode::Rand],
+            &[Mode::Diy(&["ABC", "abc", "123"]), Mode::Rand, Mode::Rand],
             &[",", "?", "!"],
         );
         println!("{:?}", res);
@@ -37,14 +37,14 @@ fn main() {
 
     // 4. 生成用户名
     for _ in 0..20 {
-        let res = rg.combine::<&str>(
+        let res = rg.combine::<&str, _>(
             &[
                 // 中文
-                &Mode::Noun,
+                Mode::Noun,
                 // 小写字母
-                &Mode::Name(Name::new(NameKind::Lowers, 0..=5)),
+                Mode::Name(Name::new(NameKind::Lowers, 0..=5)),
                 // 数字
-                &Mode::Name(Name::new(NameKind::Digits, 0..=3)),
+                Mode::Name(Name::new(NameKind::Digits, 0..=3)),
             ],
             &[],
         );
