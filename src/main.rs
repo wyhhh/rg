@@ -1,3 +1,6 @@
+#![feature(trace_macros)]
+trace_macros!(true);
+use rg::combine;
 use rg::Mode;
 use rg::Name;
 use rg::NameKind;
@@ -47,6 +50,11 @@ fn main() {
         );
         println!("{:?}", res);
     }
+
+    // 5. 使用宏
+    println!("-----------USE MOCRAO-----------");
+    let r = combine!(Mode::Noun, Mode::Adverb; ",", "");
+    println!("{:?}", r);
 
     println!("{:?}", now.elapsed());
 }

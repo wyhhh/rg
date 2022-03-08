@@ -1,15 +1,11 @@
 const ADJ_LEN: usize = 69;
 
 pub(crate) fn nouns() -> &'static [&'static str] {
-	unsafe {
-		PREDS.get_unchecked(ADJ_LEN..)
-	}
+    unsafe { PREDS.get_unchecked(ADJ_LEN..) }
 }
 
 pub(crate) fn adjs() -> &'static [&'static str] {
-	unsafe {
-		PREDS.get_unchecked(..ADJ_LEN)
-	}
+    unsafe { PREDS.get_unchecked(..ADJ_LEN) }
 }
 
 pub(crate) const PREDS: &[&str] = &[
@@ -307,5 +303,4 @@ pub(crate) const PREDS: &[&str] = &[
     "心水",
     "心思",
     "心远",
-
 ];

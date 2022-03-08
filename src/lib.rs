@@ -5,6 +5,7 @@ use std::borrow::Cow;
 use std::ops::RangeInclusive;
 
 mod data;
+mod macros;
 mod util;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
