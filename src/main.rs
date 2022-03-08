@@ -52,7 +52,7 @@ fn main() {
     }
 
     // 5. 使用宏
-    println!("-----------USE MOCRAO-----------");
+    println!("-----------USE MACRO-----------");
     let r = combine!(Mode::Noun, Mode::Adverb; ",", "");
     println!("{:?}", r);
 
