@@ -4,10 +4,11 @@
 # 特性
 支持Combinator模式，组合各种可能的format
 
-# TODO
+# Todo
 ✨ 支持json格式生成
 - [ ] 支持xml格式生成
 
+# Examples
 
 ```rust
 fn main() {
