@@ -6,8 +6,8 @@
 
 # Todo
 ✨ 支持json格式生成
-- [] 支持xml格式生成
-- [] etc...
+- [ ] 支持xml格式生成
+- [ ] etc...
 
 # Examples
 
