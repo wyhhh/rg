@@ -1,8 +1,4 @@
-use crate::{
-    combinator::{Generator, RgBindMode},
-    extend::Case,
-    util, Mode, Rg,
-};
+use crate::{combinator::RgBindMode, extend::Case, util, Mode, Rg};
 use std::ops::RangeInclusive;
 
 pub struct Json {
@@ -28,7 +24,7 @@ impl Json {
             level: 0,
             max_level: 3,
             float_int_rg: 2..=5,
-            float_rg: 0..=3,
+            float_rg: 1..=3,
         }
     }
 
@@ -157,7 +153,7 @@ impl Json {
 
             match choice {
                 1..=20 => self.string(buf),
-                20..=40 => self.numeric(buf),
+                21..=40 => self.numeric(buf),
                 41..=60 => self.boolean(buf),
                 61..=80 => self.boolean(buf),
                 81..=90 => self.json_obj(buf),
