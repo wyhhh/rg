@@ -1,5 +1,5 @@
 # Rubbish Generator
-废话生成器,用来填充数据，测试等等
+废话生成器，用来填充数据，测试等等
 
 # 特性
 支持Combinator模式，组合各种可能的format
