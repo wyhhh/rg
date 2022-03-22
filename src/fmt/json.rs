@@ -3,7 +3,6 @@ use crate::{
     extend::Case,
     util, Mode, Rg,
 };
-use rand::{thread_rng, Rng};
 use std::ops::RangeInclusive;
 
 pub struct Json {
@@ -11,6 +10,8 @@ pub struct Json {
     numeric_rg: RangeInclusive<u32>,
     string_rg: RangeInclusive<u32>,
     array_rg: RangeInclusive<u32>,
+    float_int_rg: RangeInclusive<u32>,
+    float_rg: RangeInclusive<u32>,
     string_case: Case,
     level: u32,
     max_level: u32,
@@ -19,13 +20,15 @@ pub struct Json {
 impl Json {
     pub const fn new() -> Self {
         Self {
-            items: 0..=20,
+            items: 10..=20,
             numeric_rg: 2..=6,
             string_case: Case::Mixed,
             string_rg: 3..=6,
             array_rg: 0..=8,
             level: 0,
-            max_level: 5,
+            max_level: 3,
+            float_int_rg: 2..=5,
+            float_rg: 0..=3,
         }
     }
 
@@ -53,7 +56,7 @@ impl Json {
         self.array_rg = rg;
         self
     }
-	   
+
     pub fn max_level(mut self, max_level: u32) -> Self {
         self.max_level = max_level;
         self
@@ -96,12 +99,22 @@ impl Json {
 
     /// Atomic node
     fn numeric(&self, buf: String) -> String {
-        Rg::new().numeric_with_buf(buf, self.numeric_rg.clone(), true)
+        Rg::new().numeric_with_buf(buf, self.numeric_rg.clone(), true, true)
     }
 
     /// Atomic node
     fn string(&self, buf: String) -> String {
         Rg::with_dec("\"", "\"").word_with_buf(buf, self.string_rg.clone(), self.string_case)
+    }
+
+    /// Atomic node
+    fn boolean(&self, buf: String) -> String {
+        Rg::new().boolean_with_buf(buf)
+    }
+
+    /// Atomic node
+    fn float(&self, buf: String) -> String {
+        Rg::new().float_with_buf(buf, self.float_int_rg.clone(), self.float_rg.clone(), true)
     }
 
     fn array(&mut self, mut buf: String) -> String {
@@ -130,22 +143,34 @@ impl Json {
 
     fn choose(&mut self, buf: String) -> String {
         if self.level > self.max_level {
-            if util::rand_or() {
-                self.string(buf)
-            } else {
-                self.numeric(buf)
+            let choice = util::rand_range(1..=4);
+
+            match choice {
+                1 => self.string(buf),
+                2 => self.numeric(buf),
+                3 => self.boolean(buf),
+                4 => self.float(buf),
+                _ => unreachable!(),
             }
         } else {
             let choice = util::rand_range(1..=100);
 
             match choice {
-                1..=45 => self.string(buf),
-                46..=90 => self.numeric(buf),
-                91..=95 => self.json_obj(buf),
-                96..=100 => self.array(buf),
+                1..=20 => self.string(buf),
+                20..=40 => self.numeric(buf),
+                41..=60 => self.boolean(buf),
+                61..=80 => self.boolean(buf),
+                81..=90 => self.json_obj(buf),
+                91..=100 => self.array(buf),
                 _ => unreachable!(),
             }
         }
+    }
+}
+
+impl Default for Json {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

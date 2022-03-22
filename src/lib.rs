@@ -105,6 +105,21 @@ impl<'a> Rg<'a> {
         self
     }
 
+    pub(crate) fn push_left(&mut self, buf: &mut String, push_dec: bool) {
+        if push_dec {
+            if let Some(l) = self.left_dec {
+                buf.push_str(l);
+            }
+        }
+    }
+    pub(crate) fn push_right(&mut self, buf: &mut String, push_dec: bool) {
+        if push_dec {
+            if let Some(r) = self.right_dec {
+                buf.push_str(r);
+            }
+        }
+    }
+
     pub fn combine<'b, S: AsRef<str> + 'b, M: Borrow<Mode<'b, S>>>(
         &mut self,
         modes: &[M],
@@ -119,14 +134,16 @@ impl<'a> Rg<'a> {
         modes: &[M],
         seps: &[S],
     ) -> String {
+        self.push_left(&mut buf, true);
         for (i, mode) in modes.iter().enumerate() {
-            let _res = self.core(mode.borrow(), &mut buf, true, true);
+            let _res = self.core(mode.borrow(), &mut buf, true, false);
 
             if !seps.is_empty() {
                 let idx = if i < seps.len() { i } else { seps.len() - 1 };
                 buf.push_str(unsafe { seps.get_unchecked(idx).as_ref() });
             }
         }
+        self.push_right(&mut buf, true);
 
         buf
     }
@@ -321,7 +338,9 @@ impl<'a> Rg<'a> {
             Others::Uppers(rg) => loop_n!(b"QWERTYUIOPASDFGHJKLZXCVBNM", rg),
             Others::Digits(rg) => loop_n!(b"0123456789", rg),
             Others::DigitsNonZero(rg) => loop_n!(b"123456789", rg),
-            Others::LowersAndUppers(rg) => loop_n!(b"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM", rg),
+            Others::LowersAndUppers(rg) => {
+                loop_n!(b"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM", rg)
+            }
         }
     }
 }

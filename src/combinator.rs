@@ -1,11 +1,9 @@
 use crate::util;
-use crate::Iter;
 use crate::Mode;
 use crate::Rg;
 use core::fmt;
 use rand::thread_rng;
 use rand::Rng;
-use std::marker::PhantomData;
 
 pub trait Generator {
     fn once(&mut self, buf: String) -> String;
@@ -18,6 +16,7 @@ pub trait Generator {
         self.once(String::new())
     }
 
+    /// Init generate for first time
     fn generate_by(mut self, buf: String) -> String
     where
         Self: Sized,

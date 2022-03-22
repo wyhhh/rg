@@ -1,15 +1,15 @@
 #![feature(trace_macros)]
 trace_macros!(true);
+use rg::combinator::select;
+use rg::combinator::Generator;
+use rg::combinator::RgBindMode;
 use rg::combine;
+use rg::extend::Case;
+use rg::fmt::json::Json;
 use rg::Mode;
 use rg::Others;
 use rg::Rg;
 use std::time::Instant;
-use rg::combinator::RgBindMode;
-use rg::combinator::Generator;
-use rg::combinator::select;
-use rg::fmt::json::Json;
-use rg::extend::Case;
 
 fn main() {
     let now = Instant::now();
@@ -87,6 +87,14 @@ fn main() {
     let mut json = Json::new();
     let res = json.generate();
     println!("{}", res);
+
+    // 10. 小数
+    let res = rg.float(1..=5, 1..=2, true);
+    println!("{:?}", res);
+
+    // 11. boolean
+    let res = rg.boolean();
+    println!("{:?}", res);
 
     println!("ok. cost: {:?}", now.elapsed());
 }
