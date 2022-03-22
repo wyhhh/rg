@@ -1,5 +1,5 @@
-# rg
-废话生成器
+# Rubbish Generator
+废话生成器,用来填充数据，测试等等
 
 # 特性
 支持Combinator模式，组合各种可能的format
@@ -7,6 +7,7 @@
 # Todo
 ✨ 支持json格式生成
 - [ ] 支持xml格式生成
+...
 
 # Examples
 
