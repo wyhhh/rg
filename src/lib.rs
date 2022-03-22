@@ -1,3 +1,6 @@
+extern crate alloc;
+extern crate rand;
+
 use enum_len::EnumLen;
 use rand::thread_rng;
 use rand::Rng;
@@ -5,26 +8,24 @@ use std::borrow::Borrow;
 use std::borrow::Cow;
 use std::ops::RangeInclusive;
 
+pub mod combinator;
 mod data;
+pub mod extend;
+pub mod fmt;
 mod macros;
 mod util;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-/// letter + digit
-pub enum NameKind {
-    Lowers,
-    Uppers,
-    Digits,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Name {
-    kind: NameKind,
-    range: RangeInclusive<u32>,
+pub enum Others {
+    Lowers(RangeInclusive<u32>),
+    Uppers(RangeInclusive<u32>),
+    LowersAndUppers(RangeInclusive<u32>),
+    Digits(RangeInclusive<u32>),
+    DigitsNonZero(RangeInclusive<u32>),
 }
 
 #[derive(EnumLen, Debug, Clone, PartialEq, Eq)]
-pub enum Mode<'a, S: AsRef<str>> {
+pub enum Mode<'a, S> {
     // ---------Borrowed-----------
     Noun,
     Verb,
@@ -37,22 +38,22 @@ pub enum Mode<'a, S: AsRef<str>> {
     SLP,
     // A = Adverb 状语
     Diy(&'a [S]),
-    Name(Name),
-    ASVO(&'a str),
-    SVOA(&'a str),
-    ASLP(&'a str),
-    SLPA(&'a str),
+    Others(Others),
+    ASVO(S),
+    SVOA(S),
+    ASLP(S),
+    SLPA(S),
     /// **must be last, for working properly**
     Rand,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Rg<'a> {
     left_dec: Option<&'a str>,
     right_dec: Option<&'a str>,
 }
 
-pub struct Iter<'a, S: AsRef<str>> {
+pub struct Iter<'a, S> {
     rg: &'a Rg<'a>,
     mode: &'a Mode<'a, S>,
 }
@@ -61,7 +62,7 @@ impl<'a, S: AsRef<str>> Iterator for Iter<'a, S> {
     type Item = Cow<'a, str>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        Some(self.rg.generate(self.mode))
+        Some(self.rg.once(self.mode))
     }
 }
 
@@ -71,17 +72,18 @@ impl<'a, S: AsRef<str>> Iter<'a, S> {
     }
 }
 
-impl Name {
-    pub fn new(kind: NameKind, range: RangeInclusive<u32>) -> Self {
-        Self { kind, range }
-    }
-}
-
 impl<'a> Rg<'a> {
     pub fn new() -> Self {
         Self {
             left_dec: None,
             right_dec: None,
+        }
+    }
+
+    pub fn with_dec(l: &'a str, r: &'a str) -> Self {
+        Self {
+            left_dec: Some(l),
+            right_dec: Some(r),
         }
     }
 
@@ -108,8 +110,15 @@ impl<'a> Rg<'a> {
         modes: &[M],
         seps: &[S],
     ) -> String {
-        let mut buf = String::new();
+        self.combine_with_buf(String::new(), modes, seps)
+    }
 
+    pub fn combine_with_buf<'b, S: AsRef<str> + 'b, M: Borrow<Mode<'b, S>>>(
+        &mut self,
+        mut buf: String,
+        modes: &[M],
+        seps: &[S],
+    ) -> String {
         for (i, mode) in modes.iter().enumerate() {
             let _res = self.core(mode.borrow(), &mut buf, true, true);
 
@@ -122,7 +131,7 @@ impl<'a> Rg<'a> {
         buf
     }
 
-    pub fn generate<'b, S: AsRef<str> + 'b, M: Borrow<Mode<'b, S>> + 'b>(
+    pub fn once<'b, S: AsRef<str> + 'b, M: Borrow<Mode<'b, S>> + 'b>(
         &self,
         mode: M,
     ) -> Cow<'b, str> {
@@ -155,8 +164,8 @@ impl<'a> Rg<'a> {
         }
 
         let ret = match mode {
-            Mode::Name(name) => {
-                self.push_name(buf, name);
+            Mode::Others(name) => {
+                self.push_others(buf, name);
                 None
             }
             Mode::SVO => {
@@ -168,19 +177,19 @@ impl<'a> Rg<'a> {
                 None
             }
             Mode::ASVO(s) => {
-                self.push_asvo(buf, s);
+                self.push_asvo(buf, s.as_ref());
                 None
             }
             Mode::SVOA(s) => {
-                self.push_svoa(buf, s);
+                self.push_svoa(buf, s.as_ref());
                 None
             }
             Mode::ASLP(s) => {
-                self.push_aslp(buf, s);
+                self.push_aslp(buf, s.as_ref());
                 None
             }
             Mode::SLPA(s) => {
-                self.push_slpa(buf, s);
+                self.push_slpa(buf, s.as_ref());
                 None
             }
             Mode::Rand => self.rand_mode(buf, mode),
@@ -209,10 +218,14 @@ impl<'a> Rg<'a> {
                 buf.push_str(d);
             }
         }
+
+        if push_buf {
+            debug_assert!(ret.is_none());
+        }
         ret
     }
 
-    fn rand_mode<'b, S: AsRef<str>>(&self, buf: &mut String, _: &Mode<'b, S>) -> Option<&'b str> {
+    fn rand_mode<'b, S2: AsRef<str>>(&self, buf: &mut String, _: &Mode<'b, S2>) -> Option<&'b str> {
         let idx = thread_rng().gen_range(0..ENUM_LEN as u8 - 7);
 
         let rmode: &Mode<'_, &str> = match idx {
@@ -229,40 +242,40 @@ impl<'a> Rg<'a> {
         self.core(rmode, buf, false, false)
     }
 
-    fn get_diy<'b, S: AsRef<str>>(&self, s: &'b [S]) -> &'b S {
-        util::slice_rgen(s)
+    fn get_diy<'b, S2: AsRef<str>>(&self, s: &'b [S2]) -> &'b S2 {
+        util::rand_slice(s)
     }
 
     fn get_pred(&self) -> &'static str {
-        *util::slice_rgen(data::PREDS)
+        *util::rand_slice(data::PREDS)
     }
 
     fn get_adverb(&self) -> &'static str {
-        *util::slice_rgen(data::ADVERBS)
+        *util::rand_slice(data::ADVERBS)
     }
 
     fn get_adj(&self) -> &'static str {
-        *util::slice_rgen(data::adjs())
+        *util::rand_slice(data::adjs())
     }
 
     fn get_noun(&self) -> &'static str {
-        *util::slice_rgen(data::nouns())
+        *util::rand_slice(data::nouns())
     }
 
     fn get_verb(&self) -> &'static str {
-        *util::slice_rgen(data::VERBS)
+        *util::rand_slice(data::VERBS)
     }
 
     fn push_svo(&self, buf: &mut String) {
-        buf.push_str(*util::slice_rgen(data::nouns()));
-        buf.push_str(*util::slice_rgen(data::VERBS));
-        buf.push_str(*util::slice_rgen(data::nouns()));
+        buf.push_str(*util::rand_slice(data::nouns()));
+        buf.push_str(*util::rand_slice(data::VERBS));
+        buf.push_str(*util::rand_slice(data::nouns()));
     }
 
     fn push_slp(&self, buf: &mut String) {
-        buf.push_str(*util::slice_rgen(data::nouns()));
-        buf.push_str(*util::slice_rgen(data::LINKS));
-        buf.push_str(*util::slice_rgen(data::PREDS));
+        buf.push_str(*util::rand_slice(data::nouns()));
+        buf.push_str(*util::rand_slice(data::LINKS));
+        buf.push_str(*util::rand_slice(data::PREDS));
     }
 
     fn push_asvo(&self, buf: &mut String, sep: &str) {
@@ -276,12 +289,14 @@ impl<'a> Rg<'a> {
         buf.push_str(sep);
         buf.push_str(self.get_adverb());
     }
+
     // ASLP(&'a str),
     fn push_aslp(&self, buf: &mut String, sep: &str) {
         buf.push_str(self.get_adverb());
         buf.push_str(sep);
         self.push_slp(buf);
     }
+
     // SLPA(&'a str),
     fn push_slpa(&self, buf: &mut String, sep: &str) {
         self.push_slp(buf);
@@ -289,22 +304,24 @@ impl<'a> Rg<'a> {
         buf.push_str(self.get_adverb());
     }
 
-    fn push_name(&self, buf: &mut String, Name { kind, range }: &Name) {
-        let cnt = thread_rng().gen_range(range.clone());
-
+    fn push_others(&self, buf: &mut String, others: &Others) {
         macro_rules! loop_n {
-            ($s:expr) => {
+            ($s:expr,$rg: expr) => {{
+                let cnt = util::rand_range($rg.clone());
+
                 for _ in 0..cnt {
-                    let x = util::slice_rgen($s);
+                    let x = util::rand_slice($s);
                     buf.push(*x as char);
                 }
-            };
+            }};
         }
 
-        match kind {
-            NameKind::Lowers => loop_n!(b"qwertyuiopasdfghjklzxcvbnm"),
-            NameKind::Uppers => loop_n!(b"QWERTYUIOPASDFGHJKLZXCVBNM"),
-            NameKind::Digits => loop_n!(b"0123456789"),
+        match others {
+            Others::Lowers(rg) => loop_n!(b"qwertyuiopasdfghjklzxcvbnm", rg),
+            Others::Uppers(rg) => loop_n!(b"QWERTYUIOPASDFGHJKLZXCVBNM", rg),
+            Others::Digits(rg) => loop_n!(b"0123456789", rg),
+            Others::DigitsNonZero(rg) => loop_n!(b"123456789", rg),
+            Others::LowersAndUppers(rg) => loop_n!(b"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM", rg),
         }
     }
 }

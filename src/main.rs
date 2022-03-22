@@ -2,10 +2,14 @@
 trace_macros!(true);
 use rg::combine;
 use rg::Mode;
-use rg::Name;
-use rg::NameKind;
+use rg::Others;
 use rg::Rg;
 use std::time::Instant;
+use rg::combinator::RgBindMode;
+use rg::combinator::Generator;
+use rg::combinator::select;
+use rg::fmt::json::Json;
+use rg::extend::Case;
 
 fn main() {
     let now = Instant::now();
@@ -16,7 +20,7 @@ fn main() {
 
     // 1. 生成一个
     // pass separator
-    let res = rg.generate::<&str, _>(Mode::ASLP(","));
+    let res = rg.once::<&str, _>(Mode::ASLP(","));
     println!("{:?}", res);
 
     // 2. 使用迭代器
@@ -35,16 +39,16 @@ fn main() {
 
     rg.reset();
 
-    // 4. 生成用户名
+    // 4. 生成昵称
     for _ in 0..20 {
         let res = rg.combine::<&str, _>(
             &[
                 // 中文
                 Mode::Noun,
                 // 小写字母
-                Mode::Name(Name::new(NameKind::Lowers, 0..=5)),
+                Mode::Others(Others::Lowers(0..=5)),
                 // 数字
-                Mode::Name(Name::new(NameKind::Digits, 0..=3)),
+                Mode::Others(Others::Digits(0..=3)),
             ],
             &[],
         );
@@ -52,9 +56,37 @@ fn main() {
     }
 
     // 5. 使用宏
-    println!("-----------USE MACRO-----------");
     let r = combine!(Mode::Noun, Mode::Adverb; ",", "");
     println!("{:?}", r);
 
-    println!("{:?}", now.elapsed());
+    // 6. 生成数字
+    let res = rg.numberic(1..=5, true);
+    println!("{:?}", res);
+
+    // 7. 生成单词
+    let res = rg.word(3..=10, Case::Lower);
+    println!("{:?}", res);
+
+    // 8. 使用combinator
+    let g: RgBindMode<&str> = RgBindMode::new(Mode::Noun);
+    let g = g.and(RgBindMode::<&str>::new(Mode::Verb));
+    let g = g.or(RgBindMode::<&str>::new(Mode::Others(Others::Digits(1..=3))));
+    let g = g.map(|mut s| {
+        s.push_str("~~");
+        s
+    });
+    let g = g.tail("**");
+    let mut g = g.repeat(3);
+    let mut g2 = RgBindMode::<&str>::new(Mode::Noun);
+    let arr: &mut [&mut dyn Generator] = &mut [&mut g, &mut g2];
+    let g = select(arr);
+
+    println!("{:?}", g.generate());
+
+    // 9. 生成随机Json
+    let mut json = Json::new();
+    let res = json.generate();
+    println!("{}", res);
+
+    println!("ok. cost: {:?}", now.elapsed());
 }

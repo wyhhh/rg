@@ -1,6 +1,13 @@
 # rg
 废话生成器
 
+# 特性
+支持Combinator模式，组合各种可能的format
+
+# TODO
+✨ 支持json格式生成
+- [ ] 支持xml格式生成
+
 
 ```rust
 #![feature(trace_macros)]
