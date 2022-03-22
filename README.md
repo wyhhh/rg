@@ -89,6 +89,14 @@ fn main() {
     let res = json.generate();
     println!("{}", res);
 
+    // 10. 小数
+    let res = rg.float(1..=5, 1..=2, true);
+    println!("{:?}", res);
+
+    // 11. boolean
+    let res = rg.boolean();
+    println!("{:?}", res);
+
     println!("ok. cost: {:?}", now.elapsed());
 }
 ```
