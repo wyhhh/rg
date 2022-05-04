@@ -1,6 +1,8 @@
+use super::LevelPrinter;
 use crate::{combinator::RgBindMode, extend::Case, util, Mode, Rg};
 use std::ops::RangeInclusive;
 
+#[derive(Debug)]
 pub struct Json {
     items: RangeInclusive<u32>,
     numeric_rg: RangeInclusive<u32>,
@@ -9,8 +11,8 @@ pub struct Json {
     float_int_rg: RangeInclusive<u32>,
     float_rg: RangeInclusive<u32>,
     string_case: Case,
-    level: u32,
-    max_level: u32,
+    level: LevelPrinter,
+    max_level: i32,
 }
 
 impl Json {
@@ -21,7 +23,7 @@ impl Json {
             string_case: Case::Mixed,
             string_rg: 3..=6,
             array_rg: 0..=8,
-            level: 0,
+            level: LevelPrinter::new("  "),
             max_level: 3,
             float_int_rg: 2..=5,
             float_rg: 1..=3,
@@ -53,7 +55,7 @@ impl Json {
         self
     }
 
-    pub fn max_level(mut self, max_level: u32) -> Self {
+    pub fn max_level(mut self, max_level: i32) -> Self {
         self.max_level = max_level;
         self
     }
@@ -63,25 +65,23 @@ impl Json {
     }
 
     fn json_obj(&mut self, mut buf: String) -> String {
-        self.level += 1;
+        self.level.upgrade();
         buf.push_str("{\n");
 
         let mut ln = "";
         for _ in 0..util::rand_range(self.items.clone()) {
             buf.push_str(ln);
-            for _ in 0..self.level {
-                buf.push_str("  ");
-            }
+            self.level.print(&mut buf, 0);
             buf = self.item(buf);
             ln = ",\n";
         }
 
         buf.push('\n');
-        for _ in 0..self.level - 1 {
-            buf.push_str("  ");
-        }
+
+        self.level.print(&mut buf, -1);
+
         buf.push('}');
-        self.level -= 1;
+        self.level.downgrade();
 
         buf
     }
@@ -114,31 +114,27 @@ impl Json {
     }
 
     fn array(&mut self, mut buf: String) -> String {
-        self.level += 1;
+        self.level.upgrade();
         buf.push_str("[\n");
         let len = util::rand_range(self.array_rg.clone());
         let mut comma = "";
 
         for _ in 0..len {
             buf.push_str(comma);
-            for _ in 0..self.level {
-                buf.push_str("  ");
-            }
+            self.level.print(&mut buf, 0);
             buf = self.choose(buf);
             comma = ",\n";
         }
 
         buf.push('\n');
-        for _ in 0..self.level - 1 {
-            buf.push_str("  ");
-        }
+        self.level.print(&mut buf, -1);
         buf.push(']');
-        self.level -= 1;
+        self.level.downgrade();
         buf
     }
 
     fn choose(&mut self, buf: String) -> String {
-        if self.level > self.max_level {
+        if self.level.level() > self.max_level {
             let choice = util::rand_range(1..=4);
 
             match choice {
